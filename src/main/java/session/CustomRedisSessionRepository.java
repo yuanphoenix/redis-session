@@ -1,6 +1,7 @@
 package session;
 
 import java.time.Duration;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -52,21 +53,19 @@ public class CustomRedisSessionRepository implements SessionRepository<CustomRed
   @Override
   public CustomRedisSession findById(String id) {
     GenericJackson2JsonRedisSerializer defaultSerializer = (GenericJackson2JsonRedisSerializer) redisTemplate.getDefaultSerializer();
-    log.info("反序列化的地址{}", defaultSerializer);
-    log.info("key是{}", prefix + id);
     Object value = redisTemplate.opsForValue()
         .get(sessionKey(id));
+
+    if (value == null) {
+      return null;
+    }
+
     CustomRedisSession session = defaultSerializer.deserialize(
         defaultSerializer.serialize(value), CustomRedisSession.class);
+
+    redisTemplate.expire(sessionKey(id), session.getMaxInactiveInterval());
+    session.setLastAccessedTime(Instant.now());
     return session;
-//    byte[] data = (byte[]) redisTemplate.opsForValue().get(sessionKey(id));
-//    if (data == null) {
-//      return null;
-//    }
-//
-//    GenericJackson2JsonRedisSerializer serializer =
-//        (GenericJackson2JsonRedisSerializer) redisTemplate.getValueSerializer();
-//    return serializer.deserialize(data, CustomRedisSession.class);
   }
 
   @Override
