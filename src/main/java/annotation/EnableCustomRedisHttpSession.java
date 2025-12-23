@@ -12,8 +12,11 @@ import org.springframework.context.annotation.Import;
  * @author tifa
  */
 @Documented
+//保留到运行期
 @Retention(RetentionPolicy.RUNTIME)
+//作用于类、注解等
 @Target(ElementType.TYPE)
+//当使用 EnableCustomRedisHttpSession 注解时，将 CustomRedisHttpSessionConfiguration 加载进来
 @Import(CustomRedisHttpSessionConfiguration.class)
 public @interface EnableCustomRedisHttpSession {
 
