@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportAware;
@@ -32,16 +33,12 @@ import session.CustomRedisSessionRepository;
  */
 //声明这是一个 Spring 配置类，里面的 @Bean 会被注册到容器
 @Configuration
-//项目是否已经显式启用，并且已经配置了 RedisConnectionFactory 就是redis的host之类的信息
+//项目是否已经显式启用
 @ConditionalOnBean(annotation = EnableCustomRedisHttpSession.class)
-
 //某个 Class 是否存在
 @ConditionalOnClass(RedisTemplate.class)
 public class CustomRedisHttpSessionConfiguration implements ImportAware {
-
-    //因为已经ConditionalOnBean了，所以一定会存在 redisConnectionFactory 的
     private final RedisConnectionFactory redisConnectionFactory;
-
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private long maxInactiveIntervalInSeconds = 1800L;
 
@@ -52,7 +49,8 @@ public class CustomRedisHttpSessionConfiguration implements ImportAware {
 
 
     @Bean
-    public CustomRedisSessionRepository customRedisSessionRepository(@Qualifier("springSessionDefaultRedisSerializer") @Autowired(required = false) RedisSerializer<Object> redisSerializer) {
+    public CustomRedisSessionRepository customRedisSessionRepository
+        (@Qualifier("springSessionDefaultRedisSerializer") @Autowired(required = false) RedisSerializer<Object> redisSerializer) {
         if (redisSerializer == null) {
             redisSerializer = new GenericJackson2JsonRedisSerializer();
         }
@@ -70,6 +68,7 @@ public class CustomRedisHttpSessionConfiguration implements ImportAware {
         return repository;
     }
 
+
     //负责告如何从请求中获取或写入 session id
     @Bean
     public HttpSessionIdResolver httpSessionIdResolver(CookieSerializer cookieSerializer) {
@@ -83,13 +82,15 @@ public class CustomRedisHttpSessionConfiguration implements ImportAware {
     //这个 bean 是整个 Spring Session 的核心，把 Redis 存储和自定义 session 与 web 请求关联起来。
     @Bean
     public SessionRepositoryFilter<CustomRedisSession> springSessionRepositoryFilter(
-            CustomRedisSessionRepository repository,
-            HttpSessionIdResolver httpSessionIdResolver) {
+        CustomRedisSessionRepository repository,
+        HttpSessionIdResolver httpSessionIdResolver) {
         SessionRepositoryFilter<CustomRedisSession> filter = new SessionRepositoryFilter<>(repository);
         filter.setHttpSessionIdResolver(httpSessionIdResolver);
         logger.info("注册 filter");
         return filter;
     }
+
+
 
 
     //用于读取元数据
